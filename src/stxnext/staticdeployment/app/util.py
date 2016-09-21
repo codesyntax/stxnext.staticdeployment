@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from Acquisition import aq_parent
+from plone.multilingual.interfaces import ITranslationManager
 from OFS.interfaces import IFolder
 import os, re, logging, inspect, traceback
 from inspect import ismethod, isfunction
@@ -20,7 +22,7 @@ try:
 except ImportError:
     try:
         # Plone v4.0 to v4.2
-        from zope.app.publisher.interfaces import IResource    
+        from zope.app.publisher.interfaces import IResource
     except ImportError:
         # Plone < v4.0
         from zope.component.interfaces import IResource
@@ -452,9 +454,8 @@ class StaticDeploymentUtils(object):
         catalog = getToolByName(self.context, 'portal_catalog')
 
         catalog_query = dict(portal_type=self.page_types + self.file_types,
-                             effectiveRange=DateTime()
+                             effectiveRange=DateTime(),
             )
-
         if modification_date is not None:
             catalog_query['modified'] = {'query': [modification_date, ],
                                          'range': 'min'}
@@ -484,10 +485,12 @@ class StaticDeploymentUtils(object):
                 try:
                     self._deploy_content(obj, is_page=is_page)
                     log.info('%s deployed' % brain.getPath())
+                    """
                     if portal_syndication.isSyndicationAllowed(obj):
                         page = '/'.join(obj.getPhysicalPath()) + '/RSS'
                         page = page[len(site_path) + 1:]
                         self._deploy_views([page], is_page=True)
+                    """
                 except:
                     log.error("error exporting object: %s\n%s" % (
                         '/'.join(obj.getPhysicalPath()),
@@ -654,7 +657,28 @@ class StaticDeploymentUtils(object):
 
             if mt in self.file_types or isinstance(obj,
                     (ImageField, OFSImage, Pdata, File)):
-                return self._render_obj(obj.data)
+                try:
+                    return self._render_obj(obj.data)
+                except:
+                    if mt == 'Image':
+                        obj_parent = aq_parent(obj)
+                        if obj_parent.portal_type in ['Project', 'ProductTab']:
+                            context_language = obj.Language()
+                            if context_language != 'en-tb':
+                                canonical_object = ITranslationManager(obj).get_translation('en-tb')
+                                if canonical_object:
+                                    return None
+                        return obj.image.data
+                    elif mt in ['CertificationItem', 'CatalogItem', 'MagazineItem']:
+                        obj_parent = aq_parent(obj)
+                        context_language = obj.Language()
+                        if context_language != 'en-tb':
+                            canonical_object = ITranslationManager(obj).get_translation('en-tb')
+                            if canonical_object:
+                                return None
+                        return obj.file_file.data
+                    else:
+                        return obj.file.data
 
             if PLONE_RESOURCE_INSTALLED and isinstance(obj, FilesystemFile):
                 if not obj.request:
@@ -679,7 +703,7 @@ class StaticDeploymentUtils(object):
 
                 view_name = obj.getLayout()
                 view = queryMultiAdapter((obj, new_req), name=view_name)
-                if view_name == 'language-switcher':
+                if view_name == 'language-switcher-ulma':
                     lang = new_req.get('LANGUAGE')
                     def_page = getattr(obj, lang, None)
                     if def_page:
@@ -867,7 +891,12 @@ class StaticDeploymentUtils(object):
 
         filename = obj.absolute_url_path().lstrip('/')
         # deploy additional views for content type
+        if obj.portal_type == 'Site':
+            self._deploy_views([os.path.join(filename, 'subinformationview'), ],
+                    is_page=True)
+
         if PLONE_APP_BLOB_INSTALLED and isinstance(obj, ATBlob):
+
             self._deploy_views([os.path.join(filename, 'view'), ],
                     is_page=True)
 
@@ -896,8 +925,10 @@ class StaticDeploymentUtils(object):
             else:
                 filename = os.path.join(filename, 'file')
 
-        self._write(filename, content)
-
+        if obj.portal_type in ['CertificationItem', 'CatalogItem', 'MagazineItem']:
+            self._write('%s/@@download/file_file/%s' % (filename, obj.file_file.filename), content)
+        else:
+            self._write(filename, content)
         # deploy all sizes of images uploaded for the object
         if not getattr(obj, 'schema', None):
             return
@@ -982,6 +1013,7 @@ class StaticDeploymentUtils(object):
                     objpath.rsplit('.', 1)[0], None)
             if not obj:
                 obj = self.context.restrictedTraverse(unquote(objpath), None)
+
             if not obj:
                 parent_obj = self.context.restrictedTraverse(
                         unquote(objpath.rsplit('/', 1)[0]), None)
@@ -1007,13 +1039,13 @@ class StaticDeploymentUtils(object):
                                 objpath = os.path.join(objpath, 'image.jpg')
 
             add_path = True
+
             if not obj:
                 if '/@@images/' in objpath:
                     parent_path, image_name = objpath.split('/@@images/')
                     parent_obj = self.context.unrestrictedTraverse(
                         unquote(parent_path), None)
                     if parent_obj:
-
                         spl_img_name = image_name.split('/')
                         if len(spl_img_name) == 1:
                             # no scalename in path
@@ -1141,8 +1173,10 @@ class StaticDeploymentUtils(object):
                 log.exception("Error trying to dump data to '%s' file!" % filename)
             return
 
+
         if RE_NOT_BINARY.search(filename) and not omit_transform and \
                 not filename.endswith('.js') and not filename.endswith('.css'):
+
             pre_transformated_content = self._apply_transforms(content, filename)
             post_transformated_content = self._apply_post_transforms(
                     pre_transformated_content, file_path=file_path)
@@ -1163,4 +1197,3 @@ class StaticDeploymentUtils(object):
 
         if filename.endswith('.html') or filename.endswith('.htm'):
             self._parse_html(pre_transformated_content, os.path.dirname(filename))
-

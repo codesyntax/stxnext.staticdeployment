@@ -173,6 +173,9 @@ class ChangeImageLinksTransformation(PostTransformation):
         dom = getDom(text)
         if not dom:
             return text
+        for link in dom.cssselect('.flowplayer.no-toggle.play-button.color-light.is-splash'):
+            style_attr = link.attrib['style'].replace('@@images/', '')
+            link.attrib['style'] = style_attr
         for link in dom.cssselect('a[href],img[src]'):
             link = LinkElement(link)
             url = link.val.rstrip('/').strip()
@@ -230,7 +233,10 @@ class ChangeImageLinksTransformation(PostTransformation):
                             new_path = new_path + '/image.jpg'
                         new_path = '/' + new_path.lstrip('/')
                         link.set(new_path)
-        return unicode(dom)
+        try:
+            return unicode(dom)
+        except:
+            return dom.__str__()
 
 
 class ChangeFileLinksTransformation(PostTransformation):
