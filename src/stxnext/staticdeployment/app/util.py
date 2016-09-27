@@ -1169,7 +1169,7 @@ class StaticDeploymentUtils(object):
             content_file = open(file_path, "w")
         except IOError:
             # do not log if an image url...
-            if '/image' not in filename:
+            if '/image' not in filename or filename.endswith('.jpg'):
                 log.exception("Error trying to dump data to '%s' file!" % filename)
             return
 
