@@ -173,7 +173,7 @@ class ChangeImageLinksTransformation(PostTransformation):
         dom = getDom(text)
         if not dom:
             return text
-        for link in dom.cssselect('.flowplayer.no-toggle.play-button.color-light.is-splash'):
+        for link in dom.cssselect('.flowplayer.no-toggle.play-button.color-light'):
             style_attr = link.attrib['style'].replace('@@images/', '')
             link.attrib['style'] = style_attr
         for link in dom.cssselect('a[href],img[src]'):

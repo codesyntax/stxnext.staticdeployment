@@ -894,6 +894,12 @@ class StaticDeploymentUtils(object):
         if obj.portal_type == 'Site':
             self._deploy_views([os.path.join(filename, 'subinformationview'), ],
                     is_page=True)
+        if obj.portal_type == 'Project' and obj.getFolderContents({'portal_type':'Video'}):
+            self._deploy_views([os.path.join(filename, 'projectvideo'), ],
+                    is_page=True)
+        if obj.portal_type == 'FolderishPage' and obj.getFolderContents({'portal_type':'Video'}):
+            self._deploy_views([os.path.join(filename, 'folderishpagevideo'), ],
+                    is_page=True)
 
         if PLONE_APP_BLOB_INSTALLED and isinstance(obj, ATBlob):
 
