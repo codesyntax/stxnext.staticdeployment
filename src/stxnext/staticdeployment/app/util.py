@@ -661,21 +661,21 @@ class StaticDeploymentUtils(object):
                     return self._render_obj(obj.data)
                 except:
                     if mt == 'Image':
-                        obj_parent = aq_parent(obj)
-                        if obj_parent.portal_type in ['Project', 'ProductTab']:
-                            context_language = obj.Language()
-                            if context_language != 'en-tb':
-                                canonical_object = ITranslationManager(obj).get_translation('en-tb')
-                                if canonical_object:
-                                    return None
+                        # obj_parent = aq_parent(obj)
+                        # if obj_parent.portal_type in ['Project', 'ProductTab']:
+                        #     context_language = obj.Language()
+                        #     if context_language != 'en-tb':
+                        #         canonical_object = ITranslationManager(obj).get_translation('en-tb')
+                        #         if canonical_object:
+                        #             return None
                         return obj.image.data
                     elif mt in ['CertificationItem', 'CatalogItem', 'MagazineItem']:
-                        obj_parent = aq_parent(obj)
-                        context_language = obj.Language()
-                        if context_language != 'en-tb':
-                            canonical_object = ITranslationManager(obj).get_translation('en-tb')
-                            if canonical_object:
-                                return None
+                        # obj_parent = aq_parent(obj)
+                        # context_language = obj.Language()
+                        # if context_language != 'en-tb':
+                        #     canonical_object = ITranslationManager(obj).get_translation('en-tb')
+                        #     if canonical_object:
+                        #         return None
                         return obj.file_file.data
                     else:
                         return obj.file.data
