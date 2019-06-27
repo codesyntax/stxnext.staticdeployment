@@ -677,6 +677,15 @@ class StaticDeploymentUtils(object):
                         #     if canonical_object:
                         #         return None
                         return obj.file_file.data
+
+                    elif mt == 'ImageGallery':
+                        # obj_parent = aq_parent(obj)
+                        # context_language = obj.Language()
+                        # if context_language != 'en-tb':
+                        #     canonical_object = ITranslationManager(obj).get_translation('en-tb')
+                        #     if canonical_object:
+                        #         return None
+                        return obj.image_large.data
                     else:
                         return obj.file.data
 
